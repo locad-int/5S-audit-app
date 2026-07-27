@@ -44,6 +44,9 @@
   .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--locad-green); text-transform: uppercase; letter-spacing: .04em; }
   label { display: block; font-size: 13px; color: var(--locad-text-dim); margin-bottom: 4px; margin-top: 10px; }
   label:first-child { margin-top: 0; }
+  .row2 > div > label:first-child, .row3 > div > label:first-child {
+    min-height: 34px; /* reserves 2 lines so inputs align even when one label wraps and another doesn't */
+  }
   input[type=text], select, textarea {
     width: 100%;
     padding: 9px 10px;
