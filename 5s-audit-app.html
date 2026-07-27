@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse 5S Weekly Audit</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f7f7f5;
+    color: #1a1a1a;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  .sub { color: #6b6b6b; font-size: 13px; margin-bottom: 18px; }
+  .card {
+    background: #fff;
+    border: 1px solid #e4e2dd;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 12px; color: #333; text-transform: uppercase; letter-spacing: .04em; }
+  label { display: block; font-size: 13px; color: #444; margin-bottom: 4px; margin-top: 10px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], select, textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid #d8d5cf;
+    border-radius: 7px;
+    font-size: 14px;
+    background: #fff;
+    color: #1a1a1a;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 50px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .btn {
+    display: inline-block;
+    border: none;
+    border-radius: 7px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary { background: #c0392b; color: #fff; }
+  .btn-primary:hover { background: #a93226; }
+  .btn-secondary { background: #eee; color: #222; }
+  .btn-secondary:hover { background: #e2e2e2; }
+  .btn-pdf { background: #1a1a1a; color: #fff; }
+  .btn-pdf:hover { background: #333; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .notice {
+    background: #fff8e1; color: #7a5200; border: 1px solid #f2e1a8;
+    border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px;
+  }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: #555; margin-bottom: 14px; }
+  .legend span { background: #f4f3f0; border-radius: 6px; padding: 3px 8px; }
+  .criterion {
+    border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 12px;
+  }
+  .criterion:last-child { margin-bottom: 0; }
+  .crit-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .crit-name { font-weight: 700; font-size: 14px; }
+  .crit-standard { font-size: 12px; color: #6b6b6b; margin: 4px 0 10px; }
+  .score-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .score-btn {
+    border: 1px solid #d8d5cf; background: #fff; border-radius: 7px; padding: 8px 12px;
+    font-size: 13px; font-weight: 600; cursor: pointer; min-width: 48px; text-align: center; color: #333;
+  }
+  .score-btn.sel-0 { background: #c0392b; color: #fff; border-color: #c0392b; }
+  .score-btn.sel-1 { background: #e67e22; color: #fff; border-color: #e67e22; }
+  .score-btn.sel-2 { background: #f1c40f; color: #3a2e00; border-color: #f1c40f; }
+  .score-btn.sel-3 { background: #a9d18e; color: #1e3d0f; border-color: #a9d18e; }
+  .score-btn.sel-4 { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+  .photo-flag { font-size: 11.5px; color: #c0392b; font-weight: 600; margin-top: 6px; display: block; }
+  .photo-hint { font-size: 11.5px; color: #6b7280; font-style: italic; margin-top: 6px; display: block; }
+  .findings-list { margin-top: 8px; }
+  .finding-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid #f0f0ee; }
+  .finding-item:first-child { border-top: none; }
+  .finding-item img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; flex-shrink: 0; }
+  .finding-item textarea { min-height: 40px; font-size: 13px; }
+  .finding-item .del-finding { background: none; border: none; color: #999; cursor: pointer; font-size: 18px; line-height: 1; padding: 4px; flex-shrink: 0; }
+  .finding-item .del-finding:hover { color: #c0392b; }
+  .add-finding-btn { margin-top: 8px; }
+  .summary-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .stat { background: #f4f3f0; border-radius: 8px; padding: 6px 12px; font-size: 12px; }
+  .stat b { font-size: 18px; display: block; }
+  .banner { border-radius: 8px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .banner-ok { background: #e8f5e9; color: #2e7d32; }
+  .banner-warn { background: #fdecea; color: #c0392b; }
+  .status-msg { font-size: 13px; margin-top: 10px; padding: 8px 10px; border-radius: 6px; display: none; }
+  .status-ok { background: #e8f5e9; color: #2e7d32; display: block; }
+  .status-err { background: #fdecea; color: #c0392b; display: block; }
+  .empty { color: #999; font-size: 13px; padding: 8px 0; }
+  .past-audit { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; gap: 8px; }
+  .past-audit:last-child { border-bottom: none; }
+  .past-audit .name { font-weight: 600; }
+  .past-audit .n { color: #888; font-size: 12px; }
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; flex-shrink: 0; }
+  .tag-ok { background: #e8f5e9; color: #2e7d32; }
+  .tag-warn { background: #fdecea; color: #c0392b; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Warehouse 5S Weekly Audit</h1>
+  <div class="sub">LOCAD &middot; Warehouse Operations &mdash; peer scorecard, not a self-check.</div>
+
+  <div class="card">
+    <h2>Audit Info</h2>
+    <div class="notice">No one audits their own zone. Auditors rotate weekly so every zone gets a fresh set of eyes.</div>
+    <div class="row3">
+      <div>
+        <label for="zone">Zone Being Audited</label>
+        <select id="zone">
+          <option value="Inbound">Inbound</option>
+          <option value="Inventory">Inventory</option>
+          <option value="Outbound">Outbound</option>
+          <option value="Dispatch">Dispatch</option>
+          <option value="B2B">B2B</option>
+        </select>
+      </div>
+      <div>
+        <label for="week">Week</label>
+        <input type="text" id="week" placeholder="e.g. Week of Jul 27, 2026">
+      </div>
+      <div>
+        <label for="dateField">Audit Date</label>
+        <input type="text" id="dateField">
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label for="auditorName">Auditor (this must not be the zone owner)</label>
+        <input type="text" id="auditorName" placeholder="Your name">
+      </div>
+      <div>
+        <label for="ownerName">Zone Owner</label>
+        <input type="text" id="ownerName" placeholder="Zone owner name">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Scorecard &mdash; score each criterion 0&ndash;4</h2>
+    <div class="legend">
+      <span><b>4</b> Fully meets standard</span>
+      <span><b>3</b> Minor gap, fix this shift</span>
+      <span><b>2</b> Moderate gap, fix in 24h</span>
+      <span><b>1</b> Major gap, corrective plan, recheck 48h</span>
+      <span><b>0</b> Not done, escalate same day</span>
+    </div>
+    <div id="criteriaList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Result</h2>
+    <div class="summary-stats" id="summaryStats"></div>
+    <div id="resultBanners"></div>
+    <div class="actions">
+      <button class="btn btn-pdf" id="pdfBtn">Generate PDF Summary</button>
+      <button class="btn btn-secondary" id="newAuditBtn">Start New Audit</button>
+    </div>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Past Audits (saved on this device)</h2>
+    <div id="pastAudits"><div class="empty">No past audits yet.</div></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const CRITERIA = ['Sort', 'Set in Order', 'Shine', 'Standardize', 'Sustain'];
+
+  const ZONE_STANDARDS = {
+    'Inbound': {
+      'Sort': 'Only current-day receiving pallets, active returns carts, and staged transfers remain in the aisle. No idle pallets, broken carts, or personal items at the charging station.',
+      'Set in Order': 'Pallets aligned to floor markings; returns bins labeled by disposition; charging cables coiled and hung, not on the floor.',
+      'Shine': 'Floor clear of debris, strapping, and shrink wrap at end of shift; charging station wiped down weekly.'
+    },
+    'Inventory': {
+      'Sort': 'Only SKUs assigned to that rack/shelf location remain there. No overflow stock blocking aisles between R010–R13, S01, B03–B04.',
+      'Set in Order': 'Every bin/shelf location labeled and matched to system location; fast-movers at accessible heights; empty locations flagged, not left ambiguous.',
+      'Shine': 'Aisles swept daily; shelving free of dust/damage; damaged racking reported same day.'
+    },
+    'Outbound': {
+      'Sort': 'Only orders currently in QC or packing remain at the station. No finished cartons sitting past the pickup window; no mixed-carrier cartons on the same table.',
+      'Set in Order': 'Packing stations have only the consumables and tools listed on the station’s standard layout card; carrier lanes (SPX, LEX, J&T, Ninjavan, XDE) clearly marked and separated.',
+      'Shine': 'Packing tables cleared and wiped between shifts; consumables bins refilled, not left empty or overflowing.'
+    },
+    'Dispatch': {
+      'Sort': 'Only cartons staged for a confirmed pickup window remain at the dock. No overflow blocking dock doors R20–23.',
+      'Set in Order': 'Staging lanes marked per carrier/route; scanners and manifests at a fixed home location at each dock.',
+      'Shine': 'Dock plates and door tracks clear of debris; staging lanes swept before each carrier pickup.'
+    },
+    'B2B': {
+      'Sort': 'Only active B2B pallets/orders remain in R01–09. No obsolete pallets or unlabeled stock.',
+      'Set in Order': 'Pallets labeled with PO/order number facing the aisle; stacking within marked floor outlines only.',
+      'Shine': 'Pallet area swept daily; no accumulated pallet wrap or cardboard.'
+    }
+  };
+  const GENERAL_STANDARDS = {
+    'Standardize': 'Zone card (color-coded map) posted at entrance; rack/station/lane labels match system location names; one shared checklist used (no ad hoc version); consumable reorder points & restock owners posted at packing stations; photos of the correct standard layout posted at the zone entrance.',
+    'Sustain': 'Zone owner completes a 5-minute end-of-shift check against Sort/Set/Shine standards and logs it — daily, not just informally. Recurring issues get a root cause and an owner, not just a re-clean.'
+  };
+
+  function standardFor(zone, criterion) {
+    if (GENERAL_STANDARDS[criterion]) return GENERAL_STANDARDS[criterion];
+    return (ZONE_STANDARDS[zone] && ZONE_STANDARDS[zone][criterion]) || '';
+  }
+
+  function blankCriteria() {
+    const c = {};
+    CRITERIA.forEach(name => { c[name] = { score: null, findings: [] }; });
+    return c;
+  }
+
+  let currentAudit = loadCurrent();
+  const CURRENT_KEY = 'fiveS_current_v2';
+  const PAST_KEY = 'fiveS_past_v2';
+
+  function loadCurrent() {
+    try {
+      const raw = localStorage.getItem('fiveS_current_v2');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        CRITERIA.forEach(name => {
+          if (!parsed.criteria[name]) { parsed.criteria[name] = { score: null, findings: [] }; return; }
+          const c = parsed.criteria[name];
+          if (!c.findings) {
+            // migrate old single photo/note shape
+            c.findings = c.photo ? [{ photo: c.photo, note: c.note || '' }] : [];
+          }
+        });
+        return parsed;
+      }
+    } catch(e) {}
+    return {
+      id: 'audit_' + Date.now(),
+      createdAt: new Date().toISOString(),
+      zone: 'Inbound',
+      week: '',
+      auditor: '',
+      owner: '',
+      date: new Date().toISOString().slice(0,10),
+      criteria: blankCriteria()
+    };
+  }
+  function saveCurrent() { localStorage.setItem(CURRENT_KEY, JSON.stringify(currentAudit)); }
+  function loadPast() {
+    try { const raw = localStorage.getItem(PAST_KEY); if (raw) return JSON.parse(raw); } catch(e) {}
+    return [];
+  }
+  function savePast(list) { localStorage.setItem(PAST_KEY, JSON.stringify(list)); }
+
+  const zoneSel = document.getElementById('zone');
+  const weekInput = document.getElementById('week');
+  const dateField = document.getElementById('dateField');
+  const auditorName = document.getElementById('auditorName');
+  const ownerName = document.getElementById('ownerName');
+  const criteriaList = document.getElementById('criteriaList');
+  const summaryStats = document.getElementById('summaryStats');
+  const resultBanners = document.getElementById('resultBanners');
+  const pdfBtn = document.getElementById('pdfBtn');
+  const newAuditBtn = document.getElementById('newAuditBtn');
+  const statusMsg = document.getElementById('statusMsg');
+  const pastAudits = document.getElementById('pastAudits');
+
+  zoneSel.value = currentAudit.zone;
+  weekInput.value = currentAudit.week;
+  dateField.value = currentAudit.date;
+  auditorName.value = currentAudit.auditor;
+  ownerName.value = currentAudit.owner;
+
+  zoneSel.addEventListener('change', () => { currentAudit.zone = zoneSel.value; saveCurrent(); renderCriteria(); });
+  weekInput.addEventListener('input', () => { currentAudit.week = weekInput.value; saveCurrent(); });
+  dateField.addEventListener('input', () => { currentAudit.date = dateField.value; saveCurrent(); });
+  auditorName.addEventListener('input', () => { currentAudit.auditor = auditorName.value; saveCurrent(); });
+  ownerName.addEventListener('input', () => { currentAudit.owner = ownerName.value; saveCurrent(); });
+
+  function escapeHtml(s) {
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function compressPhoto(file, cb) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 900;
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        cb(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderCriteria() {
+    criteriaList.innerHTML = CRITERIA.map(name => {
+      const c = currentAudit.criteria[name];
+      const std = standardFor(currentAudit.zone, name);
+      const scoreBtns = [4,3,2,1,0].map(s => `
+        <button type="button" class="score-btn ${c.score === s ? 'sel-'+s : ''}" data-crit="${name}" data-score="${s}">${s}</button>
+      `).join('');
+      const needsPhoto = c.score !== null && c.score <= 2;
+      const suggestPhoto = c.score !== null && c.score >= 3;
+      const findingsHtml = c.findings.map((f, i) => `
+        <div class="finding-item">
+          <img src="${f.photo}">
+          <textarea placeholder="What's wrong in this photo..." data-crit="${name}" data-idx="${i}">${escapeHtml(f.note)}</textarea>
+          <button type="button" class="del-finding" data-crit="${name}" data-idx="${i}" title="Remove">&times;</button>
+        </div>
+      `).join('');
+      return `
+        <div class="criterion">
+          <div class="crit-head">
+            <div class="crit-name">${name}</div>
+          </div>
+          <div class="crit-standard">${escapeHtml(std)}</div>
+          <div class="score-row">${scoreBtns}</div>
+          <div class="findings-list">${findingsHtml}</div>
+          <input type="file" accept="image/*" capture="environment" data-photo-input="${name}" style="display:none">
+          <button type="button" class="btn btn-secondary add-finding-btn" data-add="${name}">+ Add Finding Photo</button>
+          ${needsPhoto && c.findings.length === 0 ? '<span class="photo-flag">At least one photo is required for score ≤2 &mdash; add one per finding if there are several.</span>' : ''}
+          ${suggestPhoto && c.findings.length === 0 ? '<span class="photo-hint">Optional, but a photo for the record is encouraged even at this score.</span>' : ''}
+        </div>
+      `;
+    }).join('');
+
+    criteriaList.querySelectorAll('.score-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const crit = btn.dataset.crit;
+        currentAudit.criteria[crit].score = parseInt(btn.dataset.score, 10);
+        saveCurrent();
+        renderCriteria();
+        renderResult();
+      });
+    });
+    criteriaList.querySelectorAll('textarea[data-crit]').forEach(ta => {
+      ta.addEventListener('input', () => {
+        currentAudit.criteria[ta.dataset.crit].findings[parseInt(ta.dataset.idx,10)].note = ta.value;
+        saveCurrent();
+      });
+    });
+    criteriaList.querySelectorAll('.del-finding').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const crit = btn.dataset.crit;
+        currentAudit.criteria[crit].findings.splice(parseInt(btn.dataset.idx,10), 1);
+        saveCurrent();
+        renderCriteria();
+        renderResult();
+      });
+    });
+    criteriaList.querySelectorAll('[data-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inp = criteriaList.querySelector(`input[data-photo-input="${btn.dataset.add}"]`);
+        inp.click();
+      });
+    });
+    criteriaList.querySelectorAll('input[data-photo-input]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const file = inp.files[0];
+        if (!file) return;
+        const crit = inp.dataset.photoInput;
+        compressPhoto(file, (dataUrl) => {
+          currentAudit.criteria[crit].findings.push({ photo: dataUrl, note: '' });
+          saveCurrent();
+          renderCriteria();
+          renderResult();
+        });
+        inp.value = '';
+      });
+    });
+  }
+
+  function scoreResults() {
+    const scores = CRITERIA.map(name => currentAudit.criteria[name].score);
+    const allScored = scores.every(s => s !== null);
+    const total = scores.reduce((a,b) => a + (b || 0), 0);
+    const correctiveAction = total < 14;
+    const escalate = CRITERIA.filter(name => {
+      const s = currentAudit.criteria[name].score;
+      return s === 0 || s === 1;
+    });
+    const missingPhotos = CRITERIA.filter(name => {
+      const c = currentAudit.criteria[name];
+      return c.score !== null && c.score <= 2 && c.findings.length === 0;
+    });
+    return { scores, allScored, total, correctiveAction, escalate, missingPhotos };
+  }
+
+  function renderResult() {
+    const r = scoreResults();
+    summaryStats.innerHTML = `
+      <div class="stat"><b>${r.allScored ? r.total : '–'}/20</b>Zone total</div>
+      <div class="stat"><b>${r.escalate.length}</b>Escalations (0–1)</div>
+      <div class="stat"><b>${r.correctiveAction && r.allScored ? 'Yes' : 'No'}</b>Corrective action (&lt;14)</div>
+    `;
+    let banners = '';
+    if (r.allScored) {
+      if (r.escalate.length > 0) {
+        banners += `<div class="banner banner-warn">Escalate today: ${r.escalate.join(', ')} scored 0–1 — notify shift lead same day.</div>`;
+      }
+      if (r.correctiveAction) {
+        banners += `<div class="banner banner-warn">Zone total ${r.total}/20 is below 14 — corrective action plan required.</div>`;
+      }
+      if (!r.correctiveAction && r.escalate.length === 0) {
+        banners += `<div class="banner banner-ok">Zone total ${r.total}/20 — no corrective action triggered.</div>`;
+      }
+    } else {
+      banners += `<div class="banner banner-warn">Score all 5 criteria to see the result.</div>`;
+    }
+    resultBanners.innerHTML = banners;
+  }
+
+  function flash(msg, isErr) {
+    statusMsg.textContent = msg;
+    statusMsg.className = 'status-msg ' + (isErr ? 'status-err' : 'status-ok');
+    setTimeout(() => { statusMsg.className = 'status-msg'; }, 6000);
+  }
+
+  function reportTitle() {
+    const dateStr = (currentAudit.date || new Date().toISOString().slice(0,10));
+    return `5S-Audit-${currentAudit.zone}-${dateStr}`;
+  }
+
+  pdfBtn.addEventListener('click', () => {
+    const r = scoreResults();
+    if (!r.allScored) { flash('Score all 5 criteria before generating the summary.', true); return; }
+    if (r.missingPhotos.length > 0) { flash('Add a photo for: ' + r.missingPhotos.join(', ') + ' (required for scores ≤2).', true); return; }
+    if (!window.jspdf) { flash('PDF library failed to load. Check your internet connection.', true); return; }
+
+    pdfBtn.disabled = true;
+    pdfBtn.textContent = 'Generating...';
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 40;
+      let y = margin;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.text('Warehouse 5S Weekly Audit — Scorecard', margin, y);
+      y += 20;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text('LOCAD · Warehouse Operations', margin, y);
+      y += 22;
+
+      doc.setTextColor(20);
+      doc.setFontSize(11);
+      doc.text(`Zone: ${currentAudit.zone}`, margin, y);
+      doc.text(`Week: ${currentAudit.week || 'N/A'}`, margin + 200, y);
+      doc.text(`Date: ${currentAudit.date}`, margin + 380, y);
+      y += 16;
+      doc.text(`Auditor: ${currentAudit.auditor || 'N/A'}`, margin, y);
+      doc.text(`Zone Owner: ${currentAudit.owner || 'N/A'}`, margin + 200, y);
+      y += 20;
+
+      doc.setDrawColor(220);
+      doc.line(margin, y, pageW - margin, y);
+      y += 18;
+
+      const imgSize = 70;
+      CRITERIA.forEach(name => {
+        const c = currentAudit.criteria[name];
+        const textMaxWidth = pageW - margin*2 - imgSize - 16;
+        const std = standardFor(currentAudit.zone, name);
+        const stdLines = wrapText(doc, std, pageW - margin*2, 8.5);
+
+        // heading + standard reference (full width, no photo)
+        const headHeight = stdLines.length * 11 + 26;
+        if (y + headHeight > pageH - margin) { doc.addPage(); y = margin; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(20);
+        doc.text(`${name} — Score: ${c.score}/4  (${c.findings.length} finding${c.findings.length === 1 ? '' : 's'})`, margin, y + 10);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8.5);
+        doc.setTextColor(110);
+        doc.text(stdLines, margin, y + 24);
+        y += headHeight;
+
+        if (c.findings.length === 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(140);
+          doc.text('No findings recorded.', margin, y);
+          y += 16;
+        }
+
+        c.findings.forEach((f, i) => {
+          const noteLines = f.note ? wrapText(doc, f.note, textMaxWidth, 9) : wrapText(doc, '(no note)', textMaxWidth, 9);
+          const blockHeight = Math.max(imgSize, noteLines.length * 12 + 14) + 10;
+
+          if (y + blockHeight > pageH - margin) { doc.addPage(); y = margin; }
+
+          try { doc.addImage(f.photo, 'JPEG', margin, y, imgSize, imgSize); } catch(e) {}
+
+          const tx = margin + imgSize + 16;
+          let ty = y + 12;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(60);
+          doc.text(`Finding ${i + 1}`, tx, ty);
+          ty += 13;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(20);
+          doc.text(noteLines, tx, ty);
+
+          y += blockHeight;
+        });
+
+        doc.setDrawColor(235);
+        doc.line(margin, y, pageW - margin, y);
+        y += 14;
+      });
+
+      if (y + 90 > pageH - margin) { doc.addPage(); y = margin; }
+      y += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(20);
+      doc.text(`Zone Total: ${r.total}/20`, margin, y);
+      y += 18;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      if (r.correctiveAction) {
+        doc.setTextColor(192, 57, 43);
+        doc.text('Below 14/20 — corrective action plan required.', margin, y);
+        y += 14;
+      } else {
+        doc.setTextColor(46, 125, 50);
+        doc.text('No corrective action plan triggered.', margin, y);
+        y += 14;
+      }
+      if (r.escalate.length > 0) {
+        doc.setTextColor(192, 57, 43);
+        doc.text(`Escalate same day: ${r.escalate.join(', ')} scored 0–1.`, margin, y);
+        y += 14;
+      }
+      doc.setTextColor(100);
+      doc.setFontSize(9);
+      const footerLines = wrapText(doc, 'Share this scorecard with the zone owner and shift lead today. Zone owner logs corrective actions taken and the date they were closed.', pageW - margin*2, 9);
+      doc.text(footerLines, margin, y + 6);
+
+      const filename = reportTitle() + '.pdf';
+      doc.save(filename);
+
+      const past = loadPast();
+      past.unshift({
+        id: currentAudit.id, savedAt: new Date().toISOString(), title: filename,
+        zone: currentAudit.zone, week: currentAudit.week, date: currentAudit.date,
+        total: r.total, correctiveAction: r.correctiveAction, escalate: r.escalate.length > 0
+      });
+      savePast(past);
+      renderPastAudits();
+      flash('PDF summary generated: ' + filename, false);
+    } catch (e) {
+      flash('Could not generate PDF: ' + e.message, true);
+    } finally {
+      pdfBtn.disabled = false;
+      pdfBtn.textContent = 'Generate PDF Summary';
+    }
+  });
+
+  function wrapText(doc, text, maxWidth, fontSize) {
+    if (fontSize) doc.setFontSize(fontSize);
+    return doc.splitTextToSize(text || '', maxWidth);
+  }
+
+  newAuditBtn.addEventListener('click', () => {
+    const r = scoreResults();
+    if (r.scores.some(s => s !== null) && !confirm('Start a new audit? The current scorecard will be cleared from this form.')) return;
+    currentAudit = {
+      id: 'audit_' + Date.now(), createdAt: new Date().toISOString(),
+      zone: zoneSel.value, week: '', auditor: auditorName.value, owner: '',
+      date: new Date().toISOString().slice(0,10), criteria: blankCriteria()
+    };
+    saveCurrent();
+    weekInput.value = '';
+    dateField.value = currentAudit.date;
+    ownerName.value = '';
+    renderCriteria();
+    renderResult();
+  });
+
+  function renderPastAudits() {
+    const past = loadPast();
+    if (past.length === 0) { pastAudits.innerHTML = '<div class="empty">No past audits yet.</div>'; return; }
+    pastAudits.innerHTML = past.map(p => `
+      <div class="past-audit">
+        <div>
+          <div class="name">${escapeHtml(p.zone)} — ${escapeHtml(p.week || p.date)}</div>
+          <div class="n">${p.total}/20 &middot; ${new Date(p.savedAt).toLocaleString()}</div>
+        </div>
+        <span class="tag ${p.correctiveAction || p.escalate ? 'tag-warn' : 'tag-ok'}">${p.correctiveAction ? 'Corrective Action' : (p.escalate ? 'Escalated' : 'OK')}</span>
+      </div>
+    `).join('');
+  }
+
+  renderCriteria();
+  renderResult();
+  renderPastAudits();
+})();
+</script>
+</body>
+</html>
