@@ -523,7 +523,7 @@
     return `5S-Audit-${currentAudit.zone}-${dateStr}`;
   }
 
-  function uploadToDrive(doc, filename, zone) {
+  function uploadToDrive(doc, filename, zone, targetWindow) {
     if (!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('http') !== 0) {
       return Promise.resolve({ skipped: true });
     }
@@ -554,6 +554,17 @@
         document.body.appendChild(form);
         form.submit();
         setTimeout(() => { form.remove(); }, 3000);
+
+        // Close the tab from our side (the opener) rather than relying on the
+        // response page closing itself — some browsers refuse a self-close once
+        // a window has navigated cross-origin, but closing a window you opened
+        // via script is the standard, more reliably permitted pattern. Wait long
+        // enough for the upload to actually finish server-side first (observed
+        // ~2.4s for a real PDF) before closing.
+        setTimeout(() => {
+          try { if (targetWindow && !targetWindow.closed) targetWindow.close(); } catch (e) {}
+        }, 4000);
+
         resolve({ ok: true, unverified: true });
       } catch (e) {
         resolve({ ok: false, error: e.message });
@@ -763,7 +774,7 @@
       // appears to only allow one "privileged" action (download OR new-tab open)
       // per tap, and the new-tab Drive upload needs the freshest possible gesture.
       pdfBtn.textContent = 'Sending to Drive...';
-      const result = await uploadToDrive(doc, filename, currentAudit.zone);
+      const result = await uploadToDrive(doc, filename, currentAudit.zone, driveUploadTab);
       doc.save(filename);
       if (result.skipped) {
         flash('PDF saved locally: ' + filename + ' (Drive upload not configured yet).', false);
