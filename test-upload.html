@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drive Upload Test</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #060A06; color: #F2F2F0; padding: 20px; }
+  button { font-size: 16px; padding: 12px 20px; border-radius: 8px; border: none; background: #4ADE80; font-weight: 700; }
+  p { font-size: 14px; color: #9a9a9a; }
+</style>
+</head>
+<body>
+  <h2>Minimal Drive upload test</h2>
+  <p>This sends a tiny plain-text "file" straight to your Apps Script URL — no PDF, no app logic, just to see if doPost ever fires.</p>
+
+  <form id="testForm" method="POST" action="https://script.google.com/macros/s/AKfycbysNPEcQ95RgkMuXR1fpyxV9rtHpL2MRggBHvaFjGbFzIXGjjGPl2_Rg3o6iH2dp60A/exec" target="_blank">
+    <input type="hidden" name="filename" value="test-upload.pdf">
+    <input type="hidden" name="pdfBase64" value="dGVzdCB1cGxvYWQ=">
+    <input type="hidden" name="zone" value="Inbound">
+    <button type="submit">Send test POST</button>
+  </form>
+</body>
+</html>
