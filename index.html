@@ -527,18 +527,17 @@
     if (!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('http') !== 0) {
       return Promise.resolve({ skipped: true });
     }
-    // DIAGNOSTIC MODE: submitting via a hidden iframe left zero doPost executions
-    // in Apps Script's logs, meaning the request wasn't reliably reaching the script
-    // as a real POST. Opening it in a new tab instead makes Apps Script's actual
-    // response (success JSON or the real error) visible, so we can see exactly
-    // what's happening instead of guessing at an invisible failure.
+    // Targets the tab already opened synchronously at click-time (see pdfBtn
+    // handler) by matching its window name — navigating an already-open named
+    // window isn't treated as a new popup, so this isn't blocked even though
+    // PDF generation has taken real time by this point.
     return new Promise((resolve) => {
       try {
         const base64 = doc.output('datauristring').split(',')[1];
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = DRIVE_UPLOAD_URL;
-        form.target = '_blank';
+        form.target = 'driveUploadTarget';
         form.style.display = 'none';
 
         const addField = (name, value) => {
@@ -567,6 +566,18 @@
     if (!r.allScored) { flash('Score all 5 criteria before generating the summary.', true); return; }
     if (r.missingPhotos.length > 0) { flash('Add a photo for: ' + r.missingPhotos.join(', ') + ' (required for scores ≤2).', true); return; }
     if (!window.jspdf) { flash('PDF library failed to load. Check your internet connection.', true); return; }
+
+    // Open the Drive-upload tab RIGHT NOW, synchronously, before any PDF work —
+    // Safari only treats a new tab as "requested by the user" if it opens with
+    // zero delay after the tap. Building the PDF (several images, multiple
+    // pages) is synchronous JS but still takes long enough that opening the tab
+    // afterward gets silently blocked. We open a blank tab immediately here, then
+    // navigate it (via the form's target matching this window's name) once the
+    // PDF and upload payload are ready.
+    let driveUploadTab = null;
+    if (DRIVE_UPLOAD_URL && DRIVE_UPLOAD_URL.indexOf('http') === 0) {
+      driveUploadTab = window.open('', 'driveUploadTarget');
+    }
 
     pdfBtn.disabled = true;
     pdfBtn.textContent = 'Generating...';
