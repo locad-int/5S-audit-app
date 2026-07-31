@@ -527,21 +527,18 @@
     if (!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('http') !== 0) {
       return Promise.resolve({ skipped: true });
     }
-    // Apps Script's web app URL always redirects through script.googleusercontent.com
-    // to deliver its response. fetch() (even with mode:'no-cors') hits a known
-    // Safari/WebKit bug following that cross-origin redirect for POST requests and
-    // fails with "Load failed" — that's a browser bug, not a config issue, and no
-    // fetch() option works around it. A real HTML form post targeting a hidden
-    // iframe uses the browser's native navigation/redirect handling instead, which
-    // doesn't hit that bug. We can't read the (cross-origin) response either way,
-    // so this is inherently fire-and-forget — treat "submitted" as sent.
+    // DIAGNOSTIC MODE: submitting via a hidden iframe left zero doPost executions
+    // in Apps Script's logs, meaning the request wasn't reliably reaching the script
+    // as a real POST. Opening it in a new tab instead makes Apps Script's actual
+    // response (success JSON or the real error) visible, so we can see exactly
+    // what's happening instead of guessing at an invisible failure.
     return new Promise((resolve) => {
       try {
         const base64 = doc.output('datauristring').split(',')[1];
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = DRIVE_UPLOAD_URL;
-        form.target = 'driveUploadFrame';
+        form.target = '_blank';
         form.style.display = 'none';
 
         const addField = (name, value) => {
