@@ -2,8 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Warehouse 5S Weekly Audit</title>
+
+<!-- PWA: installable, so auditors can launch it from their home screen without typing a URL -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#060A06">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="5S Audit">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
@@ -216,6 +227,11 @@
 <script>
 (function() {
   const CRITERIA = ['Sort', 'Set in Order', 'Shine', 'Standardize', 'Sustain'];
+
+  // Paste your deployed Apps Script Web App URL here (ends in /exec) to enable
+  // auto-upload of generated PDFs into the shared Drive folder. Leave as-is to
+  // skip Drive upload and only save the PDF locally.
+  const DRIVE_UPLOAD_URL = 'https://script.google.com/macros/s/AKfycbysNPEcQ95RgkMuXR1fpyxV9rtHpL2MRggBHvaFjGbFzIXGjjGPl2_Rg3o6iH2dp60A/exec';
 
   // Real Locad logo (white), rasterized once for use inside the generated PDF.
   const LOCAD_LOGO_SVG = '<svg width="303" height="59" viewBox="0 0 303 59" fill="none" xmlns="http://www.w3.org/2000/svg">'
@@ -503,7 +519,21 @@
     return `5S-Audit-${currentAudit.zone}-${dateStr}`;
   }
 
-  pdfBtn.addEventListener('click', () => {
+  function uploadToDrive(doc, filename, zone) {
+    if (!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('http') !== 0) {
+      return Promise.resolve({ skipped: true });
+    }
+    const base64 = doc.output('datauristring').split(',')[1];
+    const body = new URLSearchParams({ filename, pdfBase64: base64, zone: zone || '' });
+    return fetch(DRIVE_UPLOAD_URL, { method: 'POST', body })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.ok) throw new Error(data.error || 'Upload failed');
+        return data;
+      });
+  }
+
+  pdfBtn.addEventListener('click', async () => {
     const r = scoreResults();
     if (!r.allScored) { flash('Score all 5 criteria before generating the summary.', true); return; }
     if (r.missingPhotos.length > 0) { flash('Add a photo for: ' + r.missingPhotos.join(', ') + ' (required for scores ≤2).', true); return; }
@@ -680,14 +710,32 @@
       doc.save(filename);
 
       const past = loadPast();
-      past.unshift({
+      const pastEntry = {
         id: currentAudit.id, savedAt: new Date().toISOString(), title: filename,
         zone: currentAudit.zone, week: currentAudit.week, date: currentAudit.date,
-        total: r.total, correctiveAction: r.correctiveAction, escalate: r.escalate.length > 0
-      });
+        total: r.total, correctiveAction: r.correctiveAction, escalate: r.escalate.length > 0,
+        drive: 'pending'
+      };
+      past.unshift(pastEntry);
       savePast(past);
       renderPastAudits();
-      flash('PDF summary generated: ' + filename, false);
+
+      pdfBtn.textContent = 'Saving to Drive...';
+      try {
+        const result = await uploadToDrive(doc, filename, currentAudit.zone);
+        if (result.skipped) {
+          flash('PDF saved locally: ' + filename + ' (Drive upload not configured yet).', false);
+          pastEntry.drive = 'not-configured';
+        } else {
+          flash('PDF saved locally and uploaded to the ' + currentAudit.zone + ' Drive folder: ' + filename, false);
+          pastEntry.drive = 'uploaded';
+        }
+      } catch (driveErr) {
+        flash('PDF saved locally, but Drive upload failed: ' + driveErr.message, true);
+        pastEntry.drive = 'failed';
+      }
+      savePast(past);
+      renderPastAudits();
     } catch (e) {
       flash('Could not generate PDF: ' + e.message, true);
     } finally {
@@ -720,6 +768,8 @@
   function renderPastAudits() {
     const past = loadPast();
     if (past.length === 0) { pastAudits.innerHTML = '<div class="empty">No past audits yet.</div>'; return; }
+    const driveLabel = { pending: 'Drive: uploading…', uploaded: 'Drive: saved', failed: 'Drive: failed', 'not-configured': 'Drive: not set up' };
+    const driveClass = { pending: 'tag-warn', uploaded: 'tag-ok', failed: 'tag-warn', 'not-configured': 'tag-warn' };
     pastAudits.innerHTML = past.map(p => `
       <div class="past-audit">
         <div>
@@ -727,6 +777,7 @@
           <div class="n">${p.total}/20 &middot; ${new Date(p.savedAt).toLocaleString()}</div>
         </div>
         <span class="tag ${p.correctiveAction || p.escalate ? 'tag-warn' : 'tag-ok'}">${p.correctiveAction ? 'Corrective Action' : (p.escalate ? 'Escalated' : 'OK')}</span>
+        ${p.drive ? `<span class="tag ${driveClass[p.drive] || 'tag-warn'}">${driveLabel[p.drive] || ''}</span>` : ''}
       </div>
     `).join('');
   }
@@ -735,6 +786,15 @@
   renderResult();
   renderPastAudits();
 })();
+</script>
+
+<script>
+  // Register the service worker so the app is installable (Add to Home Screen / Install App)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
 </script>
 </body>
 </html>
