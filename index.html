@@ -224,6 +224,10 @@
   </div>
 </div>
 
+<!-- Hidden target for the Drive upload form post (avoids a Safari/WebKit fetch()
+     bug where redirected cross-origin POST requests fail with "Load failed"). -->
+<iframe name="driveUploadFrame" style="display:none" aria-hidden="true" title="Drive upload (hidden)"></iframe>
+
 <script>
 (function() {
   const CRITERIA = ['Sort', 'Set in Order', 'Shine', 'Standardize', 'Sustain'];
@@ -523,15 +527,42 @@
     if (!DRIVE_UPLOAD_URL || DRIVE_UPLOAD_URL.indexOf('http') !== 0) {
       return Promise.resolve({ skipped: true });
     }
-    const base64 = doc.output('datauristring').split(',')[1];
-    const body = new URLSearchParams({ filename, pdfBase64: base64, zone: zone || '' });
-    // mode: 'no-cors' — Apps Script's web app URL redirects through
-    // script.googleusercontent.com to deliver its response, and mobile Safari in
-    // particular fails to read that redirected response cross-origin ("Load failed"),
-    // even though the upload itself already ran server-side before the redirect.
-    // We can't read the response either way, so just fire the request and trust it.
-    return fetch(DRIVE_UPLOAD_URL, { method: 'POST', mode: 'no-cors', body })
-      .then(() => ({ ok: true, unverified: true }));
+    // Apps Script's web app URL always redirects through script.googleusercontent.com
+    // to deliver its response. fetch() (even with mode:'no-cors') hits a known
+    // Safari/WebKit bug following that cross-origin redirect for POST requests and
+    // fails with "Load failed" — that's a browser bug, not a config issue, and no
+    // fetch() option works around it. A real HTML form post targeting a hidden
+    // iframe uses the browser's native navigation/redirect handling instead, which
+    // doesn't hit that bug. We can't read the (cross-origin) response either way,
+    // so this is inherently fire-and-forget — treat "submitted" as sent.
+    return new Promise((resolve) => {
+      try {
+        const base64 = doc.output('datauristring').split(',')[1];
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = DRIVE_UPLOAD_URL;
+        form.target = 'driveUploadFrame';
+        form.style.display = 'none';
+
+        const addField = (name, value) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        };
+        addField('filename', filename);
+        addField('pdfBase64', base64);
+        addField('zone', zone || '');
+
+        document.body.appendChild(form);
+        form.submit();
+        setTimeout(() => { form.remove(); }, 3000);
+        resolve({ ok: true, unverified: true });
+      } catch (e) {
+        resolve({ ok: false, error: e.message });
+      }
+    });
   }
 
   pdfBtn.addEventListener('click', async () => {
@@ -721,18 +752,16 @@
       savePast(past);
       renderPastAudits();
 
-      pdfBtn.textContent = 'Saving to Drive...';
-      try {
-        const result = await uploadToDrive(doc, filename, currentAudit.zone);
-        if (result.skipped) {
-          flash('PDF saved locally: ' + filename + ' (Drive upload not configured yet).', false);
-          pastEntry.drive = 'not-configured';
-        } else {
-          flash('PDF saved locally and sent to the ' + currentAudit.zone + ' Drive folder: ' + filename + ' (check Drive to confirm — this browser can\'t verify it landed).', false);
-          pastEntry.drive = 'sent';
-        }
-      } catch (driveErr) {
-        flash('PDF saved locally, but sending to Drive failed before it left the browser: ' + driveErr.message, true);
+      pdfBtn.textContent = 'Sending to Drive...';
+      const result = await uploadToDrive(doc, filename, currentAudit.zone);
+      if (result.skipped) {
+        flash('PDF saved locally: ' + filename + ' (Drive upload not configured yet).', false);
+        pastEntry.drive = 'not-configured';
+      } else if (result.ok) {
+        flash('PDF saved locally and sent to the ' + currentAudit.zone + ' Drive folder: ' + filename + ' (check Drive to confirm — this browser can\'t verify it landed).', false);
+        pastEntry.drive = 'sent';
+      } else {
+        flash('PDF saved locally, but sending to Drive failed before it left the browser: ' + result.error, true);
         pastEntry.drive = 'failed';
       }
       savePast(past);
