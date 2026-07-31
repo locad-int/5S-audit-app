@@ -736,7 +736,6 @@
       doc.text(footerLines, margin, y);
 
       const filename = reportTitle() + '.pdf';
-      doc.save(filename);
 
       const past = loadPast();
       const pastEntry = {
@@ -749,8 +748,12 @@
       savePast(past);
       renderPastAudits();
 
+      // Send to Drive FIRST, before doc.save() triggers a local download — Safari
+      // appears to only allow one "privileged" action (download OR new-tab open)
+      // per tap, and the new-tab Drive upload needs the freshest possible gesture.
       pdfBtn.textContent = 'Sending to Drive...';
       const result = await uploadToDrive(doc, filename, currentAudit.zone);
+      doc.save(filename);
       if (result.skipped) {
         flash('PDF saved locally: ' + filename + ' (Drive upload not configured yet).', false);
         pastEntry.drive = 'not-configured';
